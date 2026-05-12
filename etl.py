@@ -110,10 +110,10 @@ def main() -> None:
     worksheet = env("WORKSHEET")
     sa_json = env("GOOGLE_SA_KEY_JSON")
 
-    pg_user = env("PG_USER")
-    pg_password = env("PG_PASSWORD")
-    pg_host = env("PG_HOST")
-    pg_port = env("PG_PORT")
+    pg_user = env("DB_USER")
+    pg_password = env("DB_PASSWORD")
+    pg_host = env("DB_HOST")
+    pg_port = env("DB_PORT")
     pg_db = env("PG_DB")
     pg_table = env("PG_TABLE")
     pg_if_exists = "replace"
