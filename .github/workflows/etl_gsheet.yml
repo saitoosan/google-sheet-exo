@@ -1,8 +1,8 @@
 name: ETL Google Sheets to PostgreSQL
-
+ 
 on:
   workflow_dispatch:
-
+ 
 jobs:
   etl:
     runs-on: ubuntu-latest
@@ -10,24 +10,24 @@ jobs:
       SHEET_ID: ${{ secrets.SHEET_ID }}
       WORKSHEET: ${{ secrets.WORKSHEET }}
       GOOGLE_SA_KEY_JSON: ${{ secrets.GOOGLE_SA_KEY_JSON }}
-      PG_USER: ${{ secrets.PG_USER }}
-      PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
-      PG_HOST: ${{ secrets.PG_HOST }}
-      PG_PORT: ${{ secrets.PG_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
       PG_DB: ${{ secrets.PG_DB }}
       PG_TABLE: ${{ secrets.PG_TABLE }}
-
+ 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+ 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
+ 
       - name: Install dependencies
         run: pip install -r requirements.txt
-
+ 
       - name: Run ETL
         run: python etl.py
