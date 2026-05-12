@@ -1,51 +1,50 @@
-#!/usr/bin/env python3
 """
 Simple ETL: Google Sheets -> PostgreSQL
-
+ 
 - Authenticates to Google Sheets via a Service Account JSON (provided via env var)
 - Reads a worksheet into a pandas DataFrame
 - Loads the data into a PostgreSQL table
-
+ 
 Environment variables:
   SHEET_ID
   WORKSHEET
   GOOGLE_SA_KEY_JSON   # full JSON content stored as a GitHub Secret
-  PG_USER
-  PG_PASSWORD
-  PG_HOST
-  PG_PORT
+  DB_USER
+  DB_PASSWORD
+  DB_HOST
+  DB_PORT
   PG_DB
-  PG_TABLE -> Provide whatever name you want
+  PG_TABLE
 """
-
+ 
 import os
 import json
 import logging
 from typing import Optional
-
+ 
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-
+ 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger("etl")
-
+ 
 # ─── Config helpers ───────────────────────────────────────────────────────────
 def env(key: str, default: Optional[str] = None) -> str:
     val = os.getenv(key, default)
     if val is None:
         raise RuntimeError(f"Missing required environment variable: {key}")
     return val
-
+ 
 def build_pg_url(user: str, password: str, host: str, port: str, db: str) -> str:
     return f"postgresql://{user}:{password}@{host}:{port}/{db}"
-
+ 
 # ─── Google Sheets ────────────────────────────────────────────────────────────
 def read_worksheet(sheet_id: str, worksheet: str, sa_json: str) -> pd.DataFrame:
     """Return the worksheet content as a DataFrame."""
@@ -57,27 +56,27 @@ def read_worksheet(sheet_id: str, worksheet: str, sa_json: str) -> pd.DataFrame:
     creds_info = json.loads(sa_json)
     creds = Credentials.from_service_account_info(creds_info, scopes=scopes)
     gc = gspread.authorize(creds)
-
+ 
     logger.info("Opening spreadsheet %s (worksheet=%s).", sheet_id, worksheet)
     sh = gc.open_by_key(sheet_id)
     ws = sh.worksheet(worksheet)
-
+ 
     logger.info("Fetching records from worksheet…")
-    records = ws.get_all_records()  # first row = headers
+    records = ws.get_all_records()
     df = pd.DataFrame(records)
-
+ 
     if df.empty:
         logger.warning("Worksheet is empty. Nothing to load.")
     else:
         logger.info("Pulled %d rows × %d columns.", df.shape[0], df.shape[1])
-
+ 
     return df
-
+ 
 # ─── Database load ────────────────────────────────────────────────────────────
 def get_engine(pg_url: str) -> Engine:
     logger.info("Creating SQLAlchemy engine.")
     return create_engine(pg_url)
-
+ 
 def load_dataframe(
     df: pd.DataFrame,
     engine: Engine,
@@ -89,7 +88,7 @@ def load_dataframe(
     if df.empty:
         logger.info("Skip loading: DataFrame is empty.")
         return
-
+ 
     logger.info(
         "Loading DataFrame into table '%s' (if_exists=%s, chunksize=%s)…",
         table, if_exists, chunksize,
@@ -103,13 +102,15 @@ def load_dataframe(
         method="multi",
     )
     logger.info("Load completed.")
-
+ 
 # ─── Main orchestrator ────────────────────────────────────────────────────────
 def main() -> None:
+    # Google Sheets
     sheet_id = env("SHEET_ID")
     worksheet = env("WORKSHEET")
     sa_json = env("GOOGLE_SA_KEY_JSON")
-
+ 
+    # PostgreSQL — noms alignés avec les secrets GitHub
     pg_user = env("DB_USER")
     pg_password = env("DB_PASSWORD")
     pg_host = env("DB_HOST")
@@ -118,18 +119,18 @@ def main() -> None:
     pg_table = env("PG_TABLE")
     pg_if_exists = "replace"
     pg_chunksize_str = "1000"
-
+ 
     try:
         pg_chunksize = int(pg_chunksize_str) if pg_chunksize_str else None
     except ValueError:
         raise RuntimeError("PG_CHUNKSIZE must be an integer or empty.")
-
+ 
     # Extract
     df = read_worksheet(sheet_id, worksheet, sa_json)
-
+ 
     # Load
     engine = get_engine(build_pg_url(pg_user, pg_password, pg_host, pg_port, pg_db))
     load_dataframe(df, engine, pg_table, if_exists=pg_if_exists, chunksize=pg_chunksize)
-
+ 
 if __name__ == "__main__":
     main()
