@@ -7,13 +7,15 @@ jobs:
   etl:
     runs-on: ubuntu-latest
     env:
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      GOOGLE_SA_KEY_JSON: ${{ secrets.GOOGLE_SA_KEY_JSON }}
-      SHEET_ID: ${{ secrets.SHEET_ID }}
-      WORKSHEET: ${{ secrets.WORKSHEET }}
+  SHEET_ID: ${{ secrets.SHEET_ID }}
+  WORKSHEET: ${{ secrets.WORKSHEET }}
+  GOOGLE_SA_KEY_JSON: ${{ secrets.GOOGLE_SA_KEY_JSON }}
+  PG_USER: ${{ secrets.PG_USER }}
+  PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+  PG_HOST: ${{ secrets.PG_HOST }}
+  PG_PORT: ${{ secrets.PG_PORT }}
+  PG_DB: ${{ secrets.PG_DB }}
+  PG_TABLE: ${{ secrets.PG_TABLE }}
 
     steps:
       - name: Checkout repository
